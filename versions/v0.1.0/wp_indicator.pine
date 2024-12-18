@@ -1,0 +1,51 @@
+//@version=5
+indicator("WP Indicator", overlay=true)
+
+// Input parameters
+showMS = input(true, "Show Market Structure")
+showSD = input(true, "Show Supply/Demand")
+showRanges = input(true, "Show Ranges")
+timeframe = input.timeframe("", "Timeframe")
+
+// Market Structure Variables
+var float[] highs = array.new_float(0)
+var float[] lows = array.new_float(0)
+var int[] highIdxs = array.new_int(0)
+var int[] lowIdxs = array.new_int(0)
+
+// Function to detect two consecutive bearish/bullish candles
+twoConsecutiveBearish() =>
+    close[2] > close[1] and close[1] > close[0]
+
+twoConsecutiveBullish() =>
+    close[2] < close[1] and close[1] < close[0]
+
+// Market Structure Detection
+isHigherHigh = high > ta.highest(high[1], 10)
+isLowerLow = low < ta.lowest(low[1], 10)
+isHigherLow = low > ta.lowest(low[1], 10) and twoConsecutiveBearish()
+isLowerHigh = high < ta.highest(high[1], 10) and twoConsecutiveBullish()
+
+// Break of Structure Detection
+bullishBOS = false
+bearishBOS = false
+
+if isHigherHigh and twoConsecutiveBullish()
+    array.push(highs, high)
+    array.push(highIdxs, bar_index)
+    bullishBOS := true
+
+if isLowerLow and twoConsecutiveBearish()
+    array.push(lows, low)
+    array.push(lowIdxs, bar_index)
+    bearishBOS := true
+
+// Plotting
+if showMS
+    if bullishBOS
+        label.new(bar_index, high, "BOS ↑", color=color.green, style=label.style_label_up)
+    if bearishBOS
+        label.new(bar_index, low, "BOS ↓", color=color.red, style=label.style_label_down)
+
+// Plot current price
+plot(close, "Price", color=color.blue)
